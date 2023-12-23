@@ -67,12 +67,24 @@ let
     exec ${vncdoWrapper} key tab key enter
     expect "Windows Product Key"
     send_user "\n### PRODUCT KEY ###\n"
-    ${lib.strings.concatMapStrings (c: ''
-      exec ${vncdoWrapper} key ${c}
-    '') (lib.strings.stringToCharacters "w7xtc2ywfbk6bptgmhmvb6fdy")}
-    exec ${vncdoWrapper} key enter
-    expect "Select Directory"
-    expect "other than the default"
+    set entering_product_key 1
+    while { $entering_product_key } {
+      ${
+        lib.strings.concatMapStrings (c: ''
+          exec ${vncdoWrapper} key ${c}
+        '') (lib.strings.stringToCharacters "w7xtc2ywfbk6bptgmhmvb6fdy")
+      }
+      exec ${vncdoWrapper} key enter
+      expect {
+        "invalid" {
+          exec ${vncdoWrapper} key enter
+          send_user "\n### PRODUCT KEY RETRY ###\n"
+        }
+        "Select Directory" {
+          set entering_product_key 0
+        }
+      }
+    }
     send_user "\n### SELECT INSTALL DIR ###\n"
     exec ${vncdoWrapper} key enter
     expect "Setup Options"
@@ -103,26 +115,26 @@ let
     set opening_start_menu 1
     while { $opening_start_menu } {
       send_user "\n### TRYING TO OPEN START MENU ###\n"
-      exec ${vncdoWrapper} pause 10 key ctrl-esc
+      if { [catch { exec ${vncdoWrapper} pause 10 key ctrl-esc }] } { break }
       set timeout 10
       expect {
         "Programs" {
           send_user "\n### OPENED START MENU ###\n"
-          set opening_start_menu 0
+          send_user "\n### OPENING SHUT DOWN PROMPT ###\n"
+          if { [catch { exec ${vncdoWrapper} key u }] } { break }
+          send_user "\n### TRIGGERING SHUTDOWN ###\n"
+          if { [catch { exec ${vncdoWrapper} key enter }] } { break }
         }
         "Recycle Bin" {
           send_user "\n### START MENU NOT OPENED YET (recycle bin) ###\n"
         }
         timeout {
           send_user "\n### START MENU NOT OPENED YET (timeout) ###\n"
+          set opening_start_menu 0
         }
       }
       set timeout -1
     }
-    send_user "\n### OPENING SHUT DOWN PROMPT ###\n"
-    exec ${vncdoWrapper} key u
-    send_user "\n### TRIGGERING SHUTDOWN ###\n"
-    exec ${vncdoWrapper} key enter
     send_user "\n### OMG DID IT WORK???!!!! ###\n"
     exit 0 '';
   iso = runCommand "win98.iso" { } ''
