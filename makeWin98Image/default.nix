@@ -116,7 +116,6 @@ let
     while { $opening_start_menu } {
       send_user "\n### TRYING TO OPEN START MENU ###\n"
       if { [catch { exec ${vncdoWrapper} pause 10 key ctrl-esc }] } { break }
-      set timeout 10
       expect {
         "Programs" {
           send_user "\n### OPENED START MENU ###\n"
@@ -128,12 +127,7 @@ let
         "Recycle Bin" {
           send_user "\n### START MENU NOT OPENED YET (recycle bin) ###\n"
         }
-        timeout {
-          send_user "\n### START MENU NOT OPENED YET (timeout) ###\n"
-          set opening_start_menu 0
-        }
       }
-      set timeout -1
     }
     send_user "\n### OMG DID IT WORK???!!!! ###\n"
     exit 0 '';
