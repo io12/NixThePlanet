@@ -46,6 +46,7 @@
         };
         overlayAttrs = config.legacyPackages;
         legacyPackages = {
+          dosbox-record-replay = pkgs.callPackage ./dosbox-record-replay {};
           inherit osx-kvm;
           makeDarwinImage = pkgs.callPackage ./makeDarwinImage {
             # substitute relative input with absolute input
