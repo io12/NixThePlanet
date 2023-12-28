@@ -1,4 +1,96 @@
-diff -U3 -r a/src/dosbox.cpp b/src/dosbox.cpp
+diff --git a/src/dos/dos.cpp b/src/dos/dos.cpp
+index 9130bfb..898da4f 100644
+--- a/src/dos/dos.cpp
++++ b/src/dos/dos.cpp
+@@ -4976,8 +4976,6 @@ void DOS_Int21_7143(char *name1, const char *name2) {
+ #if defined (WIN32) && !defined(HX_DOS)
+ 					HANDLE hFile = DOS_CreateOpenFile(name1);
+ 					if (hFile != INVALID_HANDLE_VALUE) {
+-						time_t clock = time(NULL), ttime;
+-						struct tm *t = localtime(&clock);
+ 						FILETIME time;
+ 						t->tm_isdst = -1;
+ 						t->tm_sec  = (((int)reg_cx) << 1) & 0x3e;
+@@ -5015,7 +5013,7 @@ void DOS_Int21_7143(char *name1, const char *name2) {
+ 					if (DOS_GetFileAttrEx(name1, &status)) {
+ 						const struct tm * ltime;
+ 						time_t ttime=reg_bl==0x04?status.st_mtime:reg_bl==0x06?status.st_atime:status.st_ctime;
+-						if ((ltime=localtime(&ttime))!=0) {
++						if (0) {
+ 							reg_cx=DOS_PackTime((uint16_t)ltime->tm_hour,(uint16_t)ltime->tm_min,(uint16_t)ltime->tm_sec);
+ 							reg_di=DOS_PackDate((uint16_t)(ltime->tm_year+1900),(uint16_t)(ltime->tm_mon+1),(uint16_t)ltime->tm_mday);
+ 						}
+@@ -5339,17 +5337,17 @@ void DOS_Int21_71a6(const char *name1, const char *name2) {
+ 			time_t ttime;
+ 			const struct tm * ltime;
+ 			ttime=status.st_ctime;
+-			if ((ltime=localtime(&ttime))!=0) {
++			if (0) {
+ 				ctime=DOS_PackTime((uint16_t)ltime->tm_hour,(uint16_t)ltime->tm_min,(uint16_t)ltime->tm_sec);
+ 				cdate=DOS_PackDate((uint16_t)(ltime->tm_year+1900),(uint16_t)(ltime->tm_mon+1),(uint16_t)ltime->tm_mday);
+ 			}
+ 			ttime=status.st_atime;
+-			if ((ltime=localtime(&ttime))!=0) {
++			if (0) {
+ 				atime=DOS_PackTime((uint16_t)ltime->tm_hour,(uint16_t)ltime->tm_min,(uint16_t)ltime->tm_sec);
+ 				adate=DOS_PackDate((uint16_t)(ltime->tm_year+1900),(uint16_t)(ltime->tm_mon+1),(uint16_t)ltime->tm_mday);
+ 			}
+ 			ttime=status.st_mtime;
+-			if ((ltime=localtime(&ttime))!=0) {
++			if (0) {
+ 				mtime=DOS_PackTime((uint16_t)ltime->tm_hour,(uint16_t)ltime->tm_min,(uint16_t)ltime->tm_sec);
+ 				mdate=DOS_PackDate((uint16_t)(ltime->tm_year+1900),(uint16_t)(ltime->tm_mon+1),(uint16_t)ltime->tm_mday);
+ 			}
+diff --git a/src/dos/dos_network2.h b/src/dos/dos_network2.h
+index 248044a..ff6320c 100644
+--- a/src/dos/dos_network2.h
++++ b/src/dos/dos_network2.h
+@@ -264,7 +264,7 @@ bool Network_SetFileAttr(char const * const filename, uint16_t attr) {
+ 	struct stat temp_stat;
+ 	if (fstat(RealHandle(entry),&temp_stat)) return false;
+     const struct tm* ltime;
+-	if((ltime=localtime(&temp_stat.st_mtime))!=0) {
++	if(0) {
+ 		*otime=DOS_PackTime((uint16_t)ltime->tm_hour,(uint16_t)ltime->tm_min,(uint16_t)ltime->tm_sec);
+ 		*odate=DOS_PackDate((uint16_t)(ltime->tm_year+1900),(uint16_t)(ltime->tm_mon+1),(uint16_t)ltime->tm_mday);
+ 	} else {
+diff --git a/src/dos/drive_fat.cpp b/src/dos/drive_fat.cpp
+index 83f18d8..491a435 100644
+--- a/src/dos/drive_fat.cpp
++++ b/src/dos/drive_fat.cpp
+@@ -273,7 +273,7 @@ void time_t_to_DOS_DateTime(uint16_t &t,uint16_t &d,time_t unix_time) {
+         reg_dx=olddx;
+ 
+         time_t timet = mktime(&time);
+-        const struct tm *tm = localtime(timet == -1?&unix_time:&timet);
++        const struct tm *tm = NULL;
+         if (tm == NULL) return;
+ 
+         /* NTS: tm->tm_year = years since 1900,
+diff --git a/src/dos/drive_local.cpp b/src/dos/drive_local.cpp
+index c25d005..69a207c 100644
+--- a/src/dos/drive_local.cpp
++++ b/src/dos/drive_local.cpp
+@@ -1245,7 +1245,7 @@ void drivezRegister(std::string const& path, std::string const& dir, bool usecp)
+         f_data = NULL;
+         if (f != NULL) {
+             res=fstat(fileno(f),&temp_stat);
+-            if (res==0&&(ltime=localtime(&temp_stat.st_mtime))!=0) {
++            if (0) {
+                 fztime=DOS_PackTime((uint16_t)ltime->tm_hour,(uint16_t)ltime->tm_min,(uint16_t)ltime->tm_sec);
+                 fzdate=DOS_PackDate((uint16_t)(ltime->tm_year+1900),(uint16_t)(ltime->tm_mon+1),(uint16_t)ltime->tm_mday);
+             }
+@@ -2912,7 +2912,7 @@ bool localFile::UpdateDateTimeFromHost(void) {
+ 	struct stat temp_stat;
+ 	fstat(fileno(fhandle),&temp_stat);
+     const struct tm* ltime;
+-	if((ltime=localtime(&temp_stat.st_mtime))!=0) {
++	if(0) {
+ 		time=DOS_PackTime((uint16_t)ltime->tm_hour,(uint16_t)ltime->tm_min,(uint16_t)ltime->tm_sec);
+ 		date=DOS_PackDate((uint16_t)(ltime->tm_year+1900),(uint16_t)(ltime->tm_mon+1),(uint16_t)ltime->tm_mday);
+ 	} else {
+diff --git a/src/dosbox.cpp b/src/dosbox.cpp
+index 574670d..b562de1 100644
 --- a/src/dosbox.cpp
 +++ b/src/dosbox.cpp
 @@ -45,12 +45,14 @@
@@ -16,7 +108,7 @@ diff -U3 -r a/src/dosbox.cpp b/src/dosbox.cpp
  #include "dosbox.h"
  #include "debug.h"
  #include "cpu.h"
-@@ -411,6 +413,24 @@
+@@ -411,6 +413,24 @@ static Bitu Normal_Loop(void) {
                      return 0;
  #endif
              } else {
@@ -41,7 +133,8 @@ diff -U3 -r a/src/dosbox.cpp b/src/dosbox.cpp
                  GFX_Events();
                  if (DOSBox_Paused() == false && ticksRemain > 0) {
                      TIMER_AddTick();
-diff -U3 -r a/src/gui/sdl_mapper.cpp b/src/gui/sdl_mapper.cpp
+diff --git a/src/gui/sdl_mapper.cpp b/src/gui/sdl_mapper.cpp
+index 1f1ddeb..3fca6b2 100644
 --- a/src/gui/sdl_mapper.cpp
 +++ b/src/gui/sdl_mapper.cpp
 @@ -64,6 +64,7 @@
@@ -52,7 +145,7 @@ diff -U3 -r a/src/gui/sdl_mapper.cpp b/src/gui/sdl_mapper.cpp
  
  #include <output/output_ttf.h>
  
-@@ -4882,10 +4883,18 @@
+@@ -4882,10 +4883,18 @@ void MAPPER_CheckEvent(SDL_Event * event) {
      }
  
      if (log_keyboard_scan_codes) {
@@ -72,3 +165,237 @@ diff -U3 -r a/src/gui/sdl_mapper.cpp b/src/gui/sdl_mapper.cpp
      }
  }
  
+diff --git a/src/hardware/cmos.cpp b/src/hardware/cmos.cpp
+index b777a19..49f7a26 100644
+--- a/src/hardware/cmos.cpp
++++ b/src/hardware/cmos.cpp
+@@ -69,15 +69,13 @@ const uint8_t BIOS_DATE_months[] = {
+ extern bool         sync_time;
+ 
+ void cmos_sync_time(time_t t) {
+-    struct tm *tm = localtime(&t);
+-
+-    cmos.clock.sec = tm->tm_sec;
+-    cmos.clock.min = tm->tm_min;
+-    cmos.clock.hour = tm->tm_hour;
+-    cmos.clock.weekday = tm->tm_wday + 1;
+-    cmos.clock.day = tm->tm_mday;
+-    cmos.clock.month = tm->tm_mon + 1;
+-    cmos.clock.year = tm->tm_year + 1900;
++    cmos.clock.sec = 0;
++    cmos.clock.min = 0;
++    cmos.clock.hour = 0;
++    cmos.clock.weekday = 0 + 1;
++    cmos.clock.day = 0;
++    cmos.clock.month = 0 + 1;
++    cmos.clock.year = 0 + 1900;
+     cmos.clock_time_t = t;
+ 
+     LOG(LOG_MISC,LOG_DEBUG)("CMOS sync to %04u-%02u-%02u %02u:%02u:%02u",cmos.clock.year,cmos.clock.month,cmos.clock.day,cmos.clock.hour,cmos.clock.min,cmos.clock.sec);
+@@ -90,7 +88,7 @@ static void cmos_tick(void) {
+     ++cmos.clock_time_t;
+ 
+     if (sync_time) {
+-        time_t now = time(NULL);
++        time_t now = 0;
+         long dt = (long)now - (long)cmos.clock_time_t;
+         if (labs(dt) >= 5l) {
+             cmos_sync_time(now);
+diff --git a/src/hardware/pic.cpp b/src/hardware/pic.cpp
+index 6e20566..6fdd106 100644
+--- a/src/hardware/pic.cpp
++++ b/src/hardware/pic.cpp
+@@ -831,7 +831,7 @@ void TIMER_AddTick(void) {
+     PIC_Ticks++;
+     if ((PIC_Ticks&0x3fff) == 0) {
+         unsigned long ticks = GetTicks();
+-        int delta = int((PIC_Ticks-PIC_tickstart)*10000/(ticks-PIC_benchstart)+5);
++        int delta = 0;
+         GFX_SetTitle(-1,-1,delta,false);
+         PIC_benchstart = ticks;
+         PIC_tickstart = PIC_Ticks;
+diff --git a/src/ints/bios.cpp b/src/ints/bios.cpp
+index e204b15..735003d 100644
+--- a/src/ints/bios.cpp
++++ b/src/ints/bios.cpp
+@@ -4953,19 +4953,15 @@ unsigned char pc98_dec2bcd(unsigned char c) {
+ 
+ static Bitu INT1C_PC98_Handler(void) {
+     if (reg_ah == 0x00) { /* get time and date */
+-        time_t curtime;
+-        const struct tm *loctime;
+-        curtime = time (NULL);
+-        loctime = localtime (&curtime);
+ 
+         unsigned char tmp[6];
+ 
+-        tmp[0] = pc98_dec2bcd((unsigned int)loctime->tm_year % 100u);
+-        tmp[1] = (((unsigned int)loctime->tm_mon + 1u) << 4u) + (unsigned int)loctime->tm_wday;
+-        tmp[2] = pc98_dec2bcd(loctime->tm_mday);
+-        tmp[3] = pc98_dec2bcd(loctime->tm_hour);
+-        tmp[4] = pc98_dec2bcd(loctime->tm_min);
+-        tmp[5] = pc98_dec2bcd(loctime->tm_sec);
++        tmp[0] = pc98_dec2bcd((unsigned int)0 % 100u);
++        tmp[1] = (((unsigned int)0 + 1u) << 4u) + (unsigned int)0;
++        tmp[2] = pc98_dec2bcd(0);
++        tmp[3] = pc98_dec2bcd(0);
++        tmp[4] = pc98_dec2bcd(0);
++        tmp[5] = pc98_dec2bcd(0);
+ 
+         unsigned long mem = ((unsigned int)SegValue(es) << 4u) + reg_bx;
+ 
+@@ -5659,40 +5655,17 @@ static Bitu INT11_Handler(void) {
+ uint32_t BIOS_HostTimeSync(uint32_t ticks) {
+ #if 0//DISABLED TEMPORARILY
+     uint32_t milli = 0;
+-#if defined(DB_HAVE_CLOCK_GETTIME) && ! defined(WIN32)
+-    struct timespec tp;
+-    clock_gettime(CLOCK_REALTIME,&tp);
+-	
+-    struct tm *loctime;
+-    loctime = localtime(&tp.tv_sec);
+-    milli = (uint32_t) (tp.tv_nsec / 1000000);
+-#else
+     /* Setup time and date */
+-    struct timeb timebuffer;
+-    ftime(&timebuffer);
+-    
+-    const struct tm *loctime;
+-    loctime = localtime (&timebuffer.time);
+-    milli = (uint32_t) timebuffer.millitm;
+-#endif
+-    /*
+-    loctime->tm_hour = 23;
+-    loctime->tm_min = 59;
+-    loctime->tm_sec = 45;
+-    loctime->tm_mday = 28;
+-    loctime->tm_mon = 2-1;
+-    loctime->tm_year = 2007 - 1900;
+-    */
+ 
+ // FIXME: Why is the BIOS filling in the DOS kernel's date? That should be done when DOS boots!
+-    dos.date.day=(uint8_t)loctime->tm_mday;
+-    dos.date.month=(uint8_t)loctime->tm_mon+1;
+-    dos.date.year=(uint16_t)loctime->tm_year+1900;
++    dos.date.day=(uint8_t)0;
++    dos.date.month=(uint8_t)0;
++    dos.date.year=(uint16_t)0;
+ 
+     uint32_t nticks=(uint32_t)(((double)(
+-        (unsigned int)loctime->tm_hour*3600u*1000u+
+-        (unsigned int)loctime->tm_min*60u*1000u+
+-        (unsigned int)loctime->tm_sec*1000u+
++        (unsigned int)0*3600u*1000u+
++        (unsigned int)0*60u*1000u+
++        (unsigned int)0*1000u+
+         milli))*(((double)PIT_TICK_RATE/65536.0)/1000.0));
+ 
+     /* avoid stepping back from off by one errors */
+@@ -5798,9 +5771,7 @@ static Bitu INT8_Handler(void) {
+         if((value %50)==0) {
+             if(((value %100)==0) && check) {
+                 check = false;
+-                time_t curtime;struct tm *loctime;
+-                curtime = time (NULL);loctime = localtime (&curtime);
+-                uint32_t ticksnu = (uint32_t)((loctime->tm_hour*3600+loctime->tm_min*60+loctime->tm_sec)*(float)PIT_TICK_RATE/65536.0);
++                uint32_t ticksnu = (uint32_t)((0*3600+0*60+0)*(float)PIT_TICK_RATE/65536.0);
+                 int32_t bios = value;int32_t tn = ticksnu;
+                 int32_t diff = tn - bios;
+                 if(diff>0) {
+@@ -7544,8 +7515,6 @@ void updateDateTime(int x, int y, int pos)
+     (void)x;//UNUSED
+     (void)y;//UNUSED
+     char str[50];
+-    time_t curtime = time(NULL);
+-    struct tm *loctime = localtime (&curtime);
+     Bitu time=(Bitu)((100.0/((double)PIT_TICK_RATE/65536.0)) * mem_readd(BIOS_TIMER))/100;
+     unsigned int sec=(uint8_t)((Bitu)time % 60);
+     time/=60;
+@@ -7558,32 +7527,32 @@ void updateDateTime(int x, int y, int pos)
+     for (int i=1; i<7; i++) {
+         switch (i) {
+             case 1:
+-                val = machine==MCH_PC98?loctime->tm_year+1900:dos.date.year;
++                val = machine==MCH_PC98?0+1900:dos.date.year;
+                 reg_edx = 0x0326u;
+                 if (i==pos) pdx = reg_edx;
+                 break;
+             case 2:
+-                val = machine==MCH_PC98?loctime->tm_mon+1:dos.date.month;
++                val = machine==MCH_PC98?0+1:dos.date.month;
+                 reg_edx = 0x032bu;
+                 if (i==pos) pdx = reg_edx;
+                 break;
+             case 3:
+-                val = machine==MCH_PC98?loctime->tm_mday:dos.date.day;
++                val = machine==MCH_PC98?0:dos.date.day;
+                 reg_edx = 0x032eu;
+                 if (i==pos) pdx = reg_edx;
+                 break;
+             case 4:
+-                val = machine==MCH_PC98?loctime->tm_hour:hour;
++                val = machine==MCH_PC98?0:hour;
+                 reg_edx = 0x0426u;
+                 if (i==pos) pdx = reg_edx;
+                 break;
+             case 5:
+-                val = machine==MCH_PC98?loctime->tm_min:min;
++                val = machine==MCH_PC98?0:min;
+                 reg_edx = 0x0429u;
+                 if (i==pos) pdx = reg_edx;
+                 break;
+             case 6:
+-                val = machine==MCH_PC98?loctime->tm_sec:sec;
++                val = machine==MCH_PC98?0:sec;
+                 reg_edx = 0x042cu;
+                 if (i==pos) pdx = reg_edx;
+                 break;
+diff --git a/src/shell/shell_cmds.cpp b/src/shell/shell_cmds.cpp
+index e8bfb43..b103cf9 100644
+--- a/src/shell/shell_cmds.cpp
++++ b/src/shell/shell_cmds.cpp
+@@ -3107,14 +3107,10 @@ void DOS_Shell::CMD_DATE(char * args) {
+ 	HELP("DATE");	
+ 	if(ScanCMDBool(args,"H")) {
+ 		// synchronize date with host parameter
+-		time_t curtime;
+-		struct tm *loctime;
+-		curtime = time (NULL);
+-		loctime = localtime (&curtime);
+-		
+-		reg_cx = loctime->tm_year+1900;
+-		reg_dh = loctime->tm_mon+1;
+-		reg_dl = loctime->tm_mday;
++
++		reg_cx = 0+1900;
++		reg_dh = 0+1;
++		reg_dl = 0;
+ 
+ 		reg_ah=0x2b; // set system date
+ 		CALLBACK_RunRealInt(0x21);
+@@ -3171,11 +3167,7 @@ void DOS_Shell::CMD_TIME(char * args) {
+ 	HELP("TIME");
+ 	if(ScanCMDBool(args,"H")) {
+ 		// synchronize time with host parameter
+-		time_t curtime;
+-		struct tm *loctime;
+-		curtime = time (NULL);
+-		loctime = localtime (&curtime);
+-		
++
+ 		//reg_cx = loctime->;
+ 		//reg_dh = loctime->;
+ 		//reg_dl = loctime->;
+@@ -3183,9 +3175,9 @@ void DOS_Shell::CMD_TIME(char * args) {
+ 		// reg_ah=0x2d; // set system time TODO
+ 		// CALLBACK_RunRealInt(0x21);
+ 		
+-		uint32_t ticks=(uint32_t)(((double)(loctime->tm_hour*3600+
+-										loctime->tm_min*60+
+-										loctime->tm_sec))*18.206481481);
++		uint32_t ticks=(uint32_t)(((double)(0*3600+
++										0*60+
++										0))*18.206481481);
+ 		mem_writed(BIOS_TIMER,ticks);
+ 		if (sync_time) {manualtime=false;mainMenu.get_item("sync_host_datetime").check(true).refresh_item(mainMenu);}
+ 		return;

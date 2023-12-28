@@ -2,7 +2,8 @@
 
 { lib, fetchurl, runCommand, p7zip, dosbox-record-replay, xvfb-run, x11vnc
 , tesseract, expect, vncdo, imagemagick, writeScript, writeShellScript
-, writeText, fetchFromGitHub, callPackage }:
+, writeText, fetchFromGitHub, callPackage, rustPlatform, pkg-config, libunwind
+}:
 { dosPostInstall ? "", ... }:
 let
   win98-installer = fetchurl {
@@ -15,6 +16,10 @@ let
     hash = "sha256-47M3azg2ikc7VlFTEJA7elPGovAtSmhOtZqq8j2TJmU=";
   };
   dosboxConf = writeText "dosbox.conf" ''
+    [cpu]
+    turbo = on
+    stop turbo on key = false
+
     [autoexec]
     if exist win98.img (
       imgmount c win98.img
@@ -50,10 +55,31 @@ let
     ls -lah win98
     mv win98/*.iso $out
   '';
+  hermit = rustPlatform.buildRustPackage {
+    name = "hermit";
+    src = fetchFromGitHub {
+      owner = "facebookexperimental";
+      repo = "hermit";
+      rev = "166215be090dd584abd55bbe60cd08a5935374bf";
+      hash = "sha256-hTtluyIOGPKK/ruFU46xTZ1mIaoL363XoerMajofa40=";
+    };
+    postPatch = "cp ${./Cargo.lock} Cargo.lock";
+    cargoLock = {
+      lockFile = ./Cargo.lock;
+      outputHashes = {
+        "fbinit-0.1.2" = "sha256-jvMvaUN8TzcDle2F0ucpiAhZmtwEDd7LWVtJvhn7GwU=";
+        "reverie-0.1.0" = "sha256-cNYALcZs1D+3Chkl57DFUkTBBTkSibjQ+wQBYl4lVAk=";
+      };
+    };
+    nativeBuildInputs = [ pkg-config ];
+    buildInputs = [ libunwind ];
+    RUSTC_BOOTSTRAP = 1;
+    doCheck = false;
+  };
   installedImage = runCommand "win98.img" {
     # set __impure = true; for debugging
     # __impure = true;
-    buildInputs = [ p7zip dosbox-record-replay xvfb-run x11vnc ];
+    buildInputs = [ p7zip dosbox-record-replay xvfb-run x11vnc hermit ];
     passthru = rec {
       makeRunScript = callPackage ./run.nix;
       runScript = makeRunScript { };
@@ -69,7 +95,7 @@ let
     ) &
     ${tesseractScript} &
     runDosbox() {
-      xvfb-run -l -s ":99 -auth /tmp/xvfb.auth -ac -screen 0 800x600x24" dosbox-x -conf ${dosboxConf} || true &
+      xvfb-run -l -s ":99 -auth /tmp/xvfb.auth -ac -screen 0 800x600x24" hermit run -- ${dosbox-record-replay}/bin/dosbox-x -conf ${dosboxConf} || true &
       dosboxPID=$!
     }
     echo STAGE 1
@@ -103,4 +129,4 @@ let
     SDL_VIDEODRIVER=dummy dosbox-x -conf ${dosboxConf-postInstall}
     mv win98.img $out
   '';
-in if (dosPostInstall != "") then postInstalledImage else installedImage
+in iso # if (dosPostInstall != "") then postInstalledImage else installedImage
