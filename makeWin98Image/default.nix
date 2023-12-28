@@ -128,10 +128,7 @@ let
         "Recycle Bin" {
           send_user "\n### START MENU NOT OPENED YET (recycle bin) ###\n"
         }
-        timeout {
-          send_user "\n### START MENU NOT OPENED YET (timeout) ###\n"
-          set opening_start_menu 0
-        }
+        timeout { exit 1 }
       }
       set timeout -1
     }
@@ -173,9 +170,13 @@ let
     # Run dosbox-x a second time since it exits during the install
     echo STAGE 2
     runDosbox
-    wait $dosboxPID
-    echo DOSBOX EXITED
-    wait $expectScriptPID
+    if wait $expectScriptPID; then
+      wait $dosboxPID
+      echo DOSBOX EXITED
+    else
+      kill -SIGINT $dosboxPID
+      echo DOSBOX KILLED
+    fi
     cp win98.img $out
   '';
   postInstalledImage = let
