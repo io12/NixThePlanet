@@ -1,8 +1,8 @@
 # https://dosbox-x.com/wiki/Guide%3AInstalling-Windows-98#_installation_method_2
 
-{ lib, fetchurl, runCommand, p7zip, dosbox-record-replay, xvfb-run, x11vnc
-, tesseract, expect, vncdo, imagemagick, writeScript, writeShellScript
-, writeText, fetchFromGitHub, callPackage }:
+{ lib, fetchurl, runCommand, p7zip, dosbox-x, xvfb-run, x11vnc, tesseract
+, expect, vncdo, imagemagick, writeScript, writeShellScript, writeText
+, fetchFromGitHub, callPackage }:
 { dosPostInstall ? "", ... }:
 let
   win98-installer = fetchurl {
@@ -15,6 +15,10 @@ let
     hash = "sha256-47M3azg2ikc7VlFTEJA7elPGovAtSmhOtZqq8j2TJmU=";
   };
   dosboxConf = writeText "dosbox.conf" ''
+    [cpu]
+    turbo=on
+    stop turbo on key = false
+
     [autoexec]
     if exist win98.img (
       imgmount c win98.img
@@ -43,6 +47,90 @@ let
       TEXT="$NEW_TEXT"
     done
   '';
+  expectScript = let
+    vncdoWrapper = writeScript "vncdoWrapper" ''
+      sleep 3
+      echo VNCDO "$@" >2
+      ${vncdo}/bin/vncdo --force-caps -s 127.0.0.1::5900 "$@"
+    '';
+  in writeScript "expect.sh" ''
+    #!${expect}/bin/expect -f
+    set debug 5
+    set timeout -1
+    spawn ${tesseractScript}
+    expect "To continue, press ENTER"
+    exec ${vncdoWrapper} key enter
+    expect "click Continue"
+    exec ${vncdoWrapper} key enter
+    expect "License Agreement"
+    send_user "\n### LICENSE AGREEMENT ###\n"
+    exec ${vncdoWrapper} key tab key enter
+    expect "Windows Product Key"
+    send_user "\n### PRODUCT KEY ###\n"
+    set entering_product_key 1
+    while { $entering_product_key } {
+      ${
+        lib.strings.concatMapStrings (c: ''
+          exec ${vncdoWrapper} key ${c}
+        '') (lib.strings.stringToCharacters "w7xtc2ywfbk6bptgmhmvb6fdy")
+      }
+      exec ${vncdoWrapper} key enter
+      expect {
+        "invalid" {
+          exec ${vncdoWrapper} key enter
+          send_user "\n### PRODUCT KEY RETRY ###\n"
+        }
+        "Select Directory" {
+          set entering_product_key 0
+        }
+      }
+    }
+    send_user "\n### SELECT INSTALL DIR ###\n"
+    exec ${vncdoWrapper} key enter
+    expect "Setup Options"
+    send_user "\n### SETUP OPTIONS ###\n"
+    exec ${vncdoWrapper} key enter
+    expect "User Information"
+    send_user "\n### USER INFORMATION ###\n"
+    exec ${vncdoWrapper} type admin key enter
+    expect "Windows Components"
+    send_user "\n### WINDOWS COMPONENTS ###\n"
+    exec ${vncdoWrapper} key enter
+    expect "Identification"
+    send_user "\n### IDENTIFICATION ###\n"
+    exec ${vncdoWrapper} key enter
+    expect "Establishing Your Location"
+    send_user "\n### ESTABLISHING YOUR LOCATION ###\n"
+    exec ${vncdoWrapper} key enter
+    expect "Start Copying Files"
+    send_user "\n### START COPYING FILES ###\n"
+    exec ${vncdoWrapper} key enter
+    expect "Date/Time Properties"
+    send_user "\n### DATE/TIME PROPERTIES ###\n"
+    exec ${vncdoWrapper} key enter
+    expect "Enter Windows Password"
+    send_user "\n### ENTER WINDOWS PASSWORD ###\n"
+    exec ${vncdoWrapper} key enter
+    expect "Recycle Bin"
+    set opening_start_menu 1
+    while { $opening_start_menu } {
+      send_user "\n### TRYING TO OPEN START MENU ###\n"
+      if { [catch { exec ${vncdoWrapper} pause 10 key ctrl-esc }] } { break }
+      expect {
+        "Programs" {
+          send_user "\n### OPENED START MENU ###\n"
+          send_user "\n### OPENING SHUT DOWN PROMPT ###\n"
+          if { [catch { exec ${vncdoWrapper} key u }] } { break }
+          send_user "\n### TRIGGERING SHUTDOWN ###\n"
+          if { [catch { exec ${vncdoWrapper} key enter }] } { break }
+        }
+        "Recycle Bin" {
+          send_user "\n### START MENU NOT OPENED YET (recycle bin) ###\n"
+        }
+      }
+    }
+    send_user "\n### OMG DID IT WORK???!!!! ###\n"
+    exit 0 '';
   iso = runCommand "win98.iso" { } ''
     echo "win98-installer src: ${win98-installer}"
     mkdir win98
@@ -53,7 +141,7 @@ let
   installedImage = runCommand "win98.img" {
     # set __impure = true; for debugging
     # __impure = true;
-    buildInputs = [ p7zip dosbox-record-replay xvfb-run x11vnc ];
+    buildInputs = [ p7zip dosbox-x xvfb-run x11vnc ];
     passthru = rec {
       makeRunScript = callPackage ./run.nix;
       runScript = makeRunScript { };
@@ -67,21 +155,21 @@ let
         echo RESTARTING VNC
       done
     ) &
-    ${tesseractScript} &
     runDosbox() {
       xvfb-run -l -s ":99 -auth /tmp/xvfb.auth -ac -screen 0 800x600x24" dosbox-x -conf ${dosboxConf} || true &
       dosboxPID=$!
     }
     echo STAGE 1
-    cp -f ${./input-recordings/stage-1.txt} input-recording.txt
     runDosbox
+    ${expectScript} &
+    expectScriptPID=$!
     wait $dosboxPID
     # Run dosbox-x a second time since it exits during the install
     echo STAGE 2
-    cp -f ${./input-recordings/stage-2.txt} input-recording.txt
     runDosbox
     wait $dosboxPID
     echo DOSBOX EXITED
+    wait $expectScriptPID
     cp win98.img $out
   '';
   postInstalledImage = let
@@ -96,7 +184,7 @@ let
       exit
     '';
   in runCommand "win98.img" {
-    buildInputs = [ dosbox-record-replay ];
+    buildInputs = [ dosbox-x ];
     inherit (installedImage) passthru;
   } ''
     cp --no-preserve=mode ${installedImage} ./win98.img
